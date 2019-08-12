@@ -476,6 +476,7 @@ class Word2Vec(object):
                 if word_count - last_word_count > 10000:
                     self.word_count_actual += word_count - last_word_count
                     last_word_count = word_count
+                    # 这里是对学习率的动态更新,逐渐减小学习率
                     print('\rAlpha: %f    Progress: %.2f%%    Words/thread/sec: %.2fk    '
                           % (self.alpha,
                              (self.word_count_actual / (self.iter_size * self.train_word_size + 1)) * 100,
@@ -492,8 +493,10 @@ class Word2Vec(object):
                         if word_index == -1:
                             continue
                         word_count += 1
+                        # 如果是回车,说明这个句子读完了,那么可以跳出循环了
                         if word_index == 0:
                             break
+                        # 下采样随机丢弃频繁的单词，同时保持单词的排名不变，随机的跳过一些单词的训练
                         if self.sample > 0:
                             ran = (np.sqrt(self.vocab_cn[word_index] / (self.sample * self.train_word_size)) + 1) * \
                                   (self.sample * self.train_word_size) / self.vocab_cn[word_index]
@@ -504,6 +507,7 @@ class Word2Vec(object):
                         if sentence_length >= self.max_sentence_length:
                             break
                     sentence_position = 0
+                # 进行变量的重置,为了进行下一次迭代
                 if feof(self.file_size, f_train_file) == 0 or word_count > self.train_word_size:
                     self.word_count_actual += word_count - last_word_count
                     local_iter_size -= 1
@@ -519,6 +523,7 @@ class Word2Vec(object):
                     continue
                 neu1 = np.expand_dims(np.array(np.zeros(self.layer1_size), dtype='float64'), axis=1)
                 neu1e = np.expand_dims(np.array(np.zeros(self.layer1_size), dtype='float64'), axis=1)
+                # 用随机数在区间[1，Windows]上来生成一个窗口的大小
                 b = np.random.randint(0, self.window) % self.window
                 cw = 0
                 for i in range(b, self.window * 2 + 1 - b):
@@ -531,6 +536,7 @@ class Word2Vec(object):
                         last_word = sentence[c]
                         if last_word == -1:
                             continue
+                        # 投影层,将多个单词投影到neul中
                         move_position = last_word * self.layer1_size
                         neu1 += self.syn0[move_position: self.layer1_size + move_position]
                         cw += 1
