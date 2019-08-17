@@ -73,11 +73,9 @@ My cpu is I7-6700HQ, if you first run the code `Word2Vec_cbow_hs_1_one_thread.py
 
 Then, it will begin train the cbow, it take about 24-48 hours.
 
-目前完成了cbow的多进程代码,见代码`Word2Vec_cbow_hs_1_multithread.py`,使用参数`num_thread`来指定使用的进程个数,我在i7-9700K上面使用10个进程训练,大概速度在`3.5k/thread/s`,运行了大概2个小时左右,在i7-6700HQ,大概需要6个小时左右.这里必须吐槽一下python的多进程数据交互问题,速度非常慢,使用单线程运算的时候,,在i7-6700HQ上面,速度在`2.5k/thread/s`左右,但是使用多线程的时候,速度直接减少了一半.
+Now, I finish the multiprocessing code. You can run the code `Word2Vec_cbow_hs_1_multithread.py`, and use the parameter `num_thread` to set the num of threads. I test the code on i7-9700K, and the speed is about `3.5k/thread/s`, it taking about 2 hours. I also test it on i7-6700HQ, it taking about 6 hours.
 
-Now, I finish the multithread code. You can run the code `Word2Vec_cbow_hs_1_multithread.py`, and use the parameter `num_thread` to set the num of threads. I test the code on i7-9700K, and the speed is about `3.5k/thread/s`, it taking about 2 hours. I also test it on i7-6700HQ, it taking about 6 hours.
-
-Here, I have to make complaints about the python's multithread data sharing problem, the speed is very low. When I using single-thread operation, the speed is about `2.5k/thread/s` on the i7-6700HQ, but when using multithread, the speed is directly reduced by half!
+Here, I have to make complaints about the python's multiprocessing data sharing problem, the speed is very low. When I using single-processing operation, the speed is about `2.5k/thread/s` on the i7-6700HQ, but when using multiprocessing, the speed is directly reduced by half!
 
 You can find the vocab which is processed in <a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>, The password is: fs5t. Where `text8` is the dataset, and the `text8_vocab_test_1000_5.txt` is the word I have processed and it can be read directly.
 
