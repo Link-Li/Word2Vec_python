@@ -10,8 +10,10 @@ import numpy as np
 class VectorDistance(object):
 
     def __init__(self):
-        self.input_vector_file_name = 'data/text8_vector_test_1.npz'
+
+        # self.input_vector_file_name = 'data/text8_vector_test_1.npz'
         # self.input_vector_file_name = 'data/text8_mini_vector_test_1.npz'
+        self.input_vector_file_name = 'data/text8_mini_vector_multi_1.npz'
         self.max_size = 2000
         # 展现最接近的词的个数
         self.show_word_count = 40
@@ -93,8 +95,6 @@ class VectorDistance(object):
         # a = 1
         # len = np.sqrt(np.sum(self.vocab_vector ** 2))
         # self.vocab_vector /= len
-
-
 
 
 if __name__ == '__main__':

@@ -122,15 +122,15 @@ class Word2Vec(object):
         # now_time = time.time()
         # p = Pool(self.num_thread)
         # for i in range(self.num_thread):
-        #     p.apply_async(TrainModelThread, args=(self.num_thread, self.word_count_actual, i,
-        #                                           self.syn0, self.syn1, self.vocab_size,
-        #                                           self.layer1_size, self.train_file_name, self.alpha,
-        #                                           self.start_alpha, self.iter_size, now_time,
-        #                                           self.train_word_size, self.file_size, self.vocab_name,
-        #                                           self.sample, self.vocab_cn, self.vocab_code,
-        #                                           self.vocab_point, self.vocab_code_len, self.max_sentence_length,
-        #                                           self.window, self.max_exp, self.expTable,
-        #                                           self.exp_table_size))
+            p.apply_async(TrainModelThread, args=(self.num_thread, self.word_count_actual, i,
+                                                  self.syn0, self.syn1, self.vocab_size,
+                                                  self.layer1_size, self.train_file_name, self.alpha,
+                                                  self.start_alpha, self.iter_size, now_time,
+                                                  self.train_word_size, self.file_size, self.vocab_name,
+                                                  self.sample, self.vocab_cn, self.vocab_code,
+                                                  self.vocab_point, self.vocab_code_len, self.max_sentence_length,
+                                                  self.window, self.max_exp, self.expTable,
+                                                  self.exp_table_size))
         # p.close()
         # p.join()
 

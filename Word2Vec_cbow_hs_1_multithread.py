@@ -1,12 +1,12 @@
 """
-TODO word2Vec的cbow的实现,这里使用了text8数据集,但是只使用了单线程训练,训练需要大概24+小时
+项目名称: Word2Vec_1
+创建时间: 2019/8/14 下午3:48
+TODO word2Vec的cbow的实现,这里使用了text8数据集,多线程版本
 """
+
 import numpy as np
-from vocab.Vocab import Vocab
-from multiprocessing import Pool
-from multiprocessing import Manager
-import multiprocessing
-multiprocessing.set_start_method('spawn', True)
+import multiprocessing as mp
+mp.set_start_method('spawn', True)
 import os
 import time
 import copy
@@ -20,8 +20,8 @@ class Word2Vec(object):
         # self.train_file_name = 'data/text8_mini_2'
         # self.train_file_name = 'data/test.txt'
         # 训练好的词向量
-        self.output_file_name = 'data/text8_vector_test_2.npz'
-        # self.output_file_name = 'data/text8_mini_vector_test_1.npz'
+        self.output_file_name = 'data/text8_vector_test_1.npz'
+        # self.output_file_name = 'data/text8_mini_vector_multi_1.npz'
         # self.output_file_name = 'data/text8_mini_2_vector_test.npz'
         # self.output_file_name = 'data/text_vector_test.npz'
         # 将处理好的单词直接读取，省去了进行数据集预处理的步骤
@@ -37,8 +37,8 @@ class Word2Vec(object):
         # self.save_vocab_file_name = 'data/test_vocab_test.txt'
         self.save_vocab_file_name = ''
         # 设置学习率
-        # self.alpha = Manager().Value('d', 0.025)
-        self.alpha = 0.025
+        self.alpha = mp.Value('d', 0.025)
+        # self.alpha = 0.025
         # self.start_alpha = 0.025
         # 是否使用cbow，还是使用skip，1表示使用cbow
         self.cbow = 1
@@ -53,7 +53,7 @@ class Word2Vec(object):
         # 下采样率
         self.sample = 1e-4
         # 训练使用的线程数量
-        # self.num_thread = 10
+        self.num_thread = 10
         # 训练的迭代次数
         self.iter_size = 15
         # 是否打印输出信息，大于0就打印
@@ -80,10 +80,10 @@ class Word2Vec(object):
         # 最大的可以分析的词的数量，这里并没有使用哈希存储，这个变量就是表示一下最大的词汇量
         self.vocab_hash_size = 30000000
         # 目前实际已经训练多少word
-        # self.word_count_actual = Manager().Value('l', 0)
-        self.word_count_actual = 0
+        self.word_count_actual = mp.Value('l', 0)
+        # self.word_count_actual = 0
         # 目前已经初始化了多少syn
-        self.syn_count_actual = Manager().Value('l', 0)
+        # self.syn_count_actual = Manager().Value('l', 0)
 
 
         # 定义存储单词的变量
@@ -92,8 +92,9 @@ class Word2Vec(object):
         self.vocab_point = []     # 单词路径中每个节点对应的index值，包括根节点
         self.vocab_code = []      # 单词的哈夫曼编码，也就是单词路径中的左边还是右边，不包括根节点
         self.vocab_code_len = []  # 哈夫曼编码的长度
-
-        # self.syn1 = multiprocessing.Array('d', range(50 * 2))
+        self.syn0 = []
+        self.syn1 = []
+        self.shape_syn = []
 
 
     def Main(self):
@@ -126,32 +127,21 @@ class Word2Vec(object):
         # self.start_alpha = self.alpha
         now_time = time.time()
         # p = Pool(self.num_thread)
-        # for i in range(self.num_thread):
-        #     p.apply_async(TrainModelThread, args=(self.num_thread, self.word_count_actual, i,
-        #                                           self.syn0, self.syn1, self.vocab_size,
-        #                                           self.layer1_size, self.train_file_name, self.alpha,
-        #                                           self.start_alpha, self.iter_size, now_time,
-        #                                           self.train_word_size, self.file_size, self.vocab_name,
-        #                                           self.sample, self.vocab_cn, self.vocab_code,
-        #                                           self.vocab_point, self.vocab_code_len, self.max_sentence_length,
-        #                                           self.window, self.max_exp, self.expTable,
-        #                                           self.exp_table_size))
-        # p.close()
-        # p.join()
+        p = mp.Process()
+        for i in range(self.num_thread):
+            p = mp.Process(target=TrainModelThread, args=(self.num_thread, self.word_count_actual, i,
+                                                          self.syn0, self.syn1, self.vocab_size,
+                                                          self.layer1_size, self.train_file_name, self.alpha,
+                                                          self.shape_syn, self.iter_size, now_time,
+                                                          self.train_word_size, self.file_size, self.vocab_name,
+                                                          self.sample, self.vocab_cn, self.vocab_code,
+                                                          self.vocab_point, self.vocab_code_len,
+                                                          self.max_sentence_length,
+                                                          self.window, self.max_exp, self.expTable,
+                                                          self.exp_table_size))
+            p.start()
 
-        # TrainModelThread(self.num_thread, self.word_count_actual, 0,
-        #                  self.syn0, self.syn1, self.vocab_size,
-        #                  self.layer1_size, self.train_file_name, self.alpha,
-        #                  self.start_alpha, self.iter_size, now_time,
-        #                  self.train_word_size, self.file_size, self.vocab_name,
-        #                  self.sample, self.vocab_cn, self.vocab_code,
-        #                  self.vocab_point, self.vocab_code_len, self.max_sentence_length,
-        #                  self.window, self.max_exp, self.expTable,
-        #                  self.exp_table_size)
-
-        # print('!!!!!!!!!!!!!!!!!!!!!')
-
-        self.TrainModelThread(now_time)
+        p.join()
 
         self.SaveVocabVector()
 
@@ -201,30 +191,6 @@ class Word2Vec(object):
             # 根据词汇的频率对单词进行排序,必须排序后才能将词汇表存入文件
             self.SortVocab()
 
-        #     下面的这种方式还没有上面的效率高,估计是Python的for循环的锅
-        # with open(self.train_file_name, 'r', encoding='utf-8') as f_train_file:
-        #     # 首先把回车符放到单词列表中，虽然我现在也不知道有啥用
-        #     self.AddWordToVocab('</s>')
-        #     self.train_word_size += 1
-        #     # 获取文件的大小，用于判断是不是读到了文件尾，以及多线程运行的分割标准等
-        #     self.file_size = os.path.getsize(self.train_file_name)
-        #     file_content = f_train_file.readlines()
-        #     for file_line in file_content:
-        #         vocab_array = file_line.strip().split(' ')
-        #         for word_temp in vocab_array:
-        #             if word_temp == '':
-        #                 continue
-        #             self.AddWordToVocab(word_temp)
-        #             self.train_word_size += 1
-        #             if self.vocab_size > self.vocab_hash_size:
-        #                 # 原来的代码，这里是要对小于min_reduce的词都删除，但是考虑到目前还用不到这个
-        #                 # 所以先不写了
-        #                 pass
-        #             if self.debug_mode > 0 and (self.train_word_size % 100000 == 0):
-        #                 print('find %dK vocab' % (self.train_word_size / 1000))
-        #     # 根据词汇的频率对单词进行排序,必须排序后才能将词汇表存入文件
-        #     self.SortVocab()
-
     def SaveVocab(self):
         """
         建议之后考虑使用np.savez()进行存储
@@ -254,7 +220,18 @@ class Word2Vec(object):
         # 所以词向量的个数总是比非叶子节点多一个，这里申请vocab_size个，足够使用了
         self.syn1 = np.array(np.zeros(self.vocab_size * self.layer1_size))
 
-        self.InitSynThread()
+        # self.InitSyn()
+
+        print('init syn start')
+        rand_max = 0.5 / self.layer1_size
+        self.syn0 = np.expand_dims(np.random.uniform(-rand_max, rand_max, size=[self.vocab_size * self.layer1_size]), axis=1)
+        self.syn1 = np.expand_dims(np.zeros(self.vocab_size * self.layer1_size), axis=1)
+        self.shape_syn = self.syn0.shape
+        self.syn0.shape = self.syn0.size
+        self.syn1.shape = self.syn1.size
+        self.syn0 = mp.Array('d', self.syn0)
+        self.syn1 = mp.Array('d', self.syn1)
+        print('init syn stop')
 
         self.vocab_code = np.array(np.zeros((self.vocab_size, self.max_code_length)), dtype='int64')
         self.vocab_point = np.array(np.zeros((self.vocab_size, self.max_code_length)), dtype='int64')
@@ -282,35 +259,6 @@ class Word2Vec(object):
             # self.vocab_code_len.append(1)
         else:
             self.vocab_cn[vocab_index] += 1
-
-    # def ReadWord(self, f_file):
-    #     """
-    #     读取文件中的单词，一个字符一个字符的读取完整的单词
-    #     这里可以将使用了空格或者制表符的单词一个一个的分离出来
-    #     :param f_file: 文件指针
-    #     :return: 返回一个单词，或者返回一个空的字符串''，返回空的字符串说明这次没有分离出来单词
-    #     """
-    #     word = ''
-    #     while self.feof(self.file_size, f_file):
-    #         ch = f_file.read(1)
-    #         # 如果遇到这三个字符就退出读取文件，因为这意味着这个单词读完了或者这个句子读完了，
-    #         # 因为一般而言，文件中一个句子结束，会有一个回车，而单词之间一般使用空格或者制表符分离
-    #         if ch == ' ' or ch == '\t' or ch == '\n':
-    #             break
-    #         word += ch
-    #     return word
-
-    # def feof(self, file_size, f_file):
-    #     """
-    #     判断是不是读到了文件尾
-    #     :param file_size:  文件大小
-    #     :param f_file: 文件指针
-    #     :return: 0表示读到了文件尾，1表示没有读到文件尾
-    #     """
-    #     if file_size == f_file.tell():
-    #         return 0
-    #     else:
-    #         return 1
 
     def SortVocab(self):
         """
@@ -437,136 +385,10 @@ class Word2Vec(object):
                 self.vocab_point[a][i - b] = point_temp[b] - self.vocab_size
 
     def SaveVocabVector(self):
+        self.syn0 = np.frombuffer(self.syn0.get_obj(), dtype=np.float)
+        self.syn0.shape = self.shape_syn
         np.savez(self.output_file_name, vocab_name=self.vocab_name, vocab_vector=self.syn0,
                  vocab_size=self.vocab_size, layer_size=self.layer1_size)
-
-    def InitSynThread(self):
-        print('init syn thread start')
-        rand_max = 0.5 / self.layer1_size
-        self.syn0 = np.expand_dims(np.random.uniform(-rand_max, rand_max, size=[self.vocab_size * self.layer1_size]), axis=1)
-        self.syn1 = np.expand_dims(np.zeros(self.vocab_size * self.layer1_size), axis=1)
-        print('init syn thread stop')
-
-    def TrainModelThread(self, now_time):
-        neu1 = np.expand_dims(np.array(np.zeros(self.layer1_size), dtype='float64'), axis=1)
-        neu1e = np.expand_dims(np.array(np.zeros(self.layer1_size), dtype='float64'), axis=1)
-        start_alpha = self.alpha
-        sentence_length = 0
-        sentence_position = 0
-        sentence = np.array(np.zeros(self.max_sentence_length + 1), dtype='int64')
-        local_iter_size = self.iter_size
-
-        # 目前已经训练到了第几个word
-        word_count = 0
-        # 上次打印的时候已经训练到了第几个word
-        last_word_count = 0
-        with open(self.train_file_name, encoding='utf-8') as f_train_file:
-            f_train_file.seek(0, 0)
-            while True:
-                if word_count - last_word_count > 10000:
-                    self.word_count_actual += word_count - last_word_count
-                    last_word_count = word_count
-                    # 这里是对学习率的动态更新,逐渐减小学习率
-                    print('\rAlpha: %f    Progress: %.2f%%    Words/thread/sec: %.2fk    '
-                          % (self.alpha,
-                             (self.word_count_actual / (self.iter_size * self.train_word_size + 1)) * 100,
-                             (self.word_count_actual / ((time.time() - now_time + 1) * 1000))), end="")
-                    self.alpha = start_alpha * (1 - self.word_count_actual / (self.iter_size * self.train_word_size + 1))
-                    if self.alpha < start_alpha * 0.0001:
-                        self.alpha = start_alpha * 0.0001
-
-                if sentence_length == 0:
-                    while True:
-                        word_index = ReadWordIndex(f_train_file, self.file_size, self.vocab_name)
-                        if feof(self.file_size, f_train_file) == 0:
-                            break
-                        if word_index == -1:
-                            continue
-                        word_count += 1
-                        # 如果是回车,说明这个句子读完了,那么可以跳出循环了
-                        if word_index == 0:
-                            break
-                        # 下采样随机丢弃频繁的单词，同时保持单词的排名不变，随机的跳过一些单词的训练
-                        if self.sample > 0:
-                            ran = (np.sqrt(self.vocab_cn[word_index] / (self.sample * self.train_word_size)) + 1) * \
-                                  (self.sample * self.train_word_size) / self.vocab_cn[word_index]
-                            if ran < np.random.rand():
-                                continue
-                        sentence[sentence_length] = word_index
-                        sentence_length += 1
-                        if sentence_length >= self.max_sentence_length:
-                            break
-                    sentence_position = 0
-                # 进行变量的重置,为了进行下一次迭代
-                if feof(self.file_size, f_train_file) == 0 or word_count > self.train_word_size:
-                    self.word_count_actual += word_count - last_word_count
-                    local_iter_size -= 1
-                    if local_iter_size == 0:
-                        break
-                    word_count = 0
-                    last_word_count = 0
-                    sentence_length = 0
-                    f_train_file.seek(0, 0)
-                    continue
-                word_index = sentence[sentence_position]
-                if word_index == -1:
-                    continue
-                neu1 = np.expand_dims(np.array(np.zeros(self.layer1_size), dtype='float64'), axis=1)
-                neu1e = np.expand_dims(np.array(np.zeros(self.layer1_size), dtype='float64'), axis=1)
-                # 用随机数在区间[1，Windows]上来生成一个窗口的大小
-                b = np.random.randint(0, self.window) % self.window
-                cw = 0
-                for i in range(b, self.window * 2 + 1 - b):
-                    if i != self.window:
-                        c = sentence_position - self.window + i
-                        if c < 0 or c >= sentence_length:
-                            continue
-                        # if c >= sentence_length:
-                        #     continue
-                        last_word = sentence[c]
-                        if last_word == -1:
-                            continue
-                        # 投影层,将多个单词投影到neul中
-                        move_position = last_word * self.layer1_size
-                        neu1 += self.syn0[move_position: self.layer1_size + move_position]
-                        cw += 1
-
-                if cw > 0:
-                    neu1 /= cw
-                    for i in range(self.vocab_code_len[word_index]):
-                        f = 0
-                        l2 = self.vocab_point[word_index][i] * self.layer1_size
-                        f += np.sum(neu1 * self.syn1[l2:l2 + self.layer1_size])
-                        if f <= -self.max_exp or f >= self.max_exp:
-                            continue
-                        else:
-                            f = self.expTable[int((f + self.max_exp) * (self.exp_table_size / self.max_exp / 2))]
-                        g = (1 - self.vocab_code[word_index][i] - f) * self.alpha
-                        neu1e += g * self.syn1[l2:l2 + self.layer1_size]
-                        self.syn1[l2:l2+self.layer1_size] += g * neu1
-                    for i in range(b, self.window * 2 + 1 - b):
-                        if i != self.window:
-                            c = sentence_position - self.window + i
-                            if c < 0 or c >= sentence_length:
-                                continue
-                            last_word = sentence[c]
-                            if last_word == -1:
-                                continue
-                            move_position = last_word * self.layer1_size
-                            self.syn0[move_position:move_position+self.layer1_size] += neu1e
-                            # if np.isnan(self.syn0[0]):
-                            #     a = 1
-
-                # while next_random > 18446744073709551615:
-                #     next_random -= 18446744073709551615
-                # a = 1
-                # for p in range(0):
-                #     a += (2 ** p + p) / (3 ** p + p)
-                # word_count += 1
-                sentence_position += 1
-                if sentence_position >= sentence_length:
-                    sentence_length = 0
-                    continue
 
     def init_expTable(self):
         for i in range(self.exp_table_size):
@@ -584,6 +406,134 @@ def feof(file_size, f_file):
             return 0
         else:
             return 1
+
+def TrainModelThread(num_thread, word_count_actual, index,
+                     syn0, syn1, vocab_size,
+                     layer1_size, train_file_name, alpha,
+                     shape_syn, iter_size, now_time,
+                     train_word_size, file_size, vocab_name,
+                     sample, vocab_cn, vocab_code,
+                     vocab_point, vocab_code_len, max_sentence_length,
+                     window, max_exp, expTable,
+                     exp_table_size):
+    neu1 = np.expand_dims(np.array(np.zeros(layer1_size), dtype='float64'), axis=1)
+    neu1e = np.expand_dims(np.array(np.zeros(layer1_size), dtype='float64'), axis=1)
+    start_alpha = alpha.value
+    sentence_length = 0
+    sentence_position = 0
+    sentence = np.array(np.zeros(max_sentence_length + 1), dtype='int64')
+    local_iter_size = iter_size
+    syn0 = np.frombuffer(syn0.get_obj(), dtype=np.float)
+    syn0.shape = shape_syn
+    syn1 = np.frombuffer(syn1.get_obj(), dtype=np.float)
+    syn1.shape = shape_syn
+
+    # 目前已经训练到了第几个word
+    word_count = 0
+    # 上次打印的时候已经训练到了第几个word
+    last_word_count = 0
+    with open(train_file_name, encoding='utf-8') as f_train_file:
+        # f_train_file.seek(0, 0)
+        f_train_file.seek(int(file_size / num_thread) * index, 0)
+        while True:
+            if word_count - last_word_count > 10000:
+                word_count_actual.value += word_count - last_word_count
+                last_word_count = word_count
+                # 这里是对学习率的动态更新,逐渐减小学习率
+                print('\rAlpha: %f    Progress: %.2f%%    Words/thread/sec: %.2fk    '
+                      % (alpha.value,
+                         (word_count_actual.value / (iter_size * train_word_size + 1)) * 100,
+                         (word_count_actual.value / ((time.time() - now_time + 1) * 1000 * num_thread))), end="")
+                # 这里稍微修改一下吧,主要是word_count_actual没法计算了,或者减小train_word_size呢?感觉还是减小一下train_word_size吧
+                alpha.value = start_alpha * (1 - word_count_actual.value / (iter_size * train_word_size + 1))
+                if alpha.value < start_alpha * 0.0001:
+                    alpha.value = start_alpha * 0.0001
+
+            if sentence_length == 0:
+                while True:
+                    word_index = ReadWordIndex(f_train_file, file_size, vocab_name)
+                    if feof(file_size, f_train_file) == 0:
+                        break
+                    if word_index == -1:
+                        continue
+                    word_count += 1
+                    # 如果是回车,说明这个句子读完了,那么可以跳出循环了
+                    if word_index == 0:
+                        break
+                    # 下采样随机丢弃频繁的单词，同时保持单词的排名不变，随机的跳过一些单词的训练
+                    if sample > 0:
+                        ran = (np.sqrt(vocab_cn[word_index] / (sample * train_word_size)) + 1) * \
+                              (sample * train_word_size) / vocab_cn[word_index]
+                        if ran < np.random.rand():
+                            continue
+                    sentence[sentence_length] = word_index
+                    sentence_length += 1
+                    if sentence_length >= max_sentence_length:
+                        break
+                sentence_position = 0
+            # 进行变量的重置,为了进行下一次迭代
+            if feof(file_size, f_train_file) == 0 or word_count > train_word_size / num_thread:
+                word_count_actual.value += word_count - last_word_count
+                local_iter_size -= 1
+                if local_iter_size == 0:
+                    break
+                word_count = 0
+                last_word_count = 0
+                sentence_length = 0
+                # f_train_file.seek(0, 0)
+                f_train_file.seek(int(file_size / num_thread) * index, 0)
+                continue
+            word_index = sentence[sentence_position]
+            if word_index == -1:
+                continue
+            neu1 = np.expand_dims(np.array(np.zeros(layer1_size), dtype='float64'), axis=1)
+            neu1e = np.expand_dims(np.array(np.zeros(layer1_size), dtype='float64'), axis=1)
+            # 用随机数在区间[1，Windows]上来生成一个窗口的大小
+            b = np.random.randint(0, window) % window
+            cw = 0
+            for i in range(b, window * 2 + 1 - b):
+                if i != window:
+                    c = sentence_position - window + i
+                    if c < 0 or c >= sentence_length:
+                        continue
+                    # if c >= sentence_length:
+                    #     continue
+                    last_word = sentence[c]
+                    if last_word == -1:
+                        continue
+                    # 投影层,将多个单词投影到neul中
+                    move_position = last_word * layer1_size
+                    neu1 += syn0[move_position: layer1_size + move_position]
+                    cw += 1
+
+            if cw > 0:
+                neu1 /= cw
+                for i in range(vocab_code_len[word_index]):
+                    f = 0
+                    l2 = vocab_point[word_index][i] * layer1_size
+                    f += np.sum(neu1 * syn1[l2:l2 + layer1_size])
+                    if f <= -max_exp or f >= max_exp:
+                        continue
+                    else:
+                        f = expTable[int((f + max_exp) * (exp_table_size / max_exp / 2))]
+                    g = (1 - vocab_code[word_index][i] - f) * alpha.value
+                    neu1e += g * syn1[l2:l2 + layer1_size]
+                    syn1[l2:l2 + layer1_size] += g * neu1
+                for i in range(b, window * 2 + 1 - b):
+                    if i != window:
+                        c = sentence_position - window + i
+                        if c < 0 or c >= sentence_length:
+                            continue
+                        last_word = sentence[c]
+                        if last_word == -1:
+                            continue
+                        move_position = last_word * layer1_size
+                        syn0[move_position:move_position + layer1_size] += neu1e
+
+            sentence_position += 1
+            if sentence_position >= sentence_length:
+                sentence_length = 0
+                continue
 
 def ReadWord(f_file, file_size):
     """
