@@ -1,7 +1,7 @@
 """
 Name: Word2Vec_skip_hs_1_multiprocessing.py
 Date: 19-8-17 下午1:34
-TODO:
+TODO:skip的多线程实现版本
 """
 
 import numpy as np
@@ -15,18 +15,18 @@ import copy
 class Word2Vec(object):
     def __init__(self):
         # 用于训练的数据集
-        self.train_file_name = 'data/text8'
-        # self.train_file_name = 'data/text8_mini'
+        # self.train_file_name = 'data/text8'
+        self.train_file_name = 'data/text8_mini'
         # self.train_file_name = 'data/text8_mini_2'
         # self.train_file_name = 'data/test.txt'
         # 训练好的词向量
-        self.output_file_name = 'data/text8_vector_test_1.npz'
-        # self.output_file_name = 'data/text8_mini_vector_multi_1.npz'
+        # self.output_file_name = 'data/text8_vector_test_1.npz'
+        self.output_file_name = 'data/text8_mini_vector_skip_multi.npz'
         # self.output_file_name = 'data/text8_mini_2_vector_test.npz'
         # self.output_file_name = 'data/text_vector_test.npz'
         # 将处理好的单词直接读取，省去了进行数据集预处理的步骤
-        self.read_vocab_file_name = 'data/text8_vocab_test_1000_5.txt'
-        # self.read_vocab_file_name = 'data/text8_mini_vocab_test.txt'
+        # self.read_vocab_file_name = 'data/text8_vocab_test_1000_5.txt'
+        self.read_vocab_file_name = 'data/text8_mini_vocab_test.txt'
         # self.read_vocab_file_name = 'data/text8_mini_2_vocab_test.txt'
         # self.read_vocab_file_name = 'data/test_vocab_test.txt'
         # self.read_vocab_file_name = ''
@@ -53,7 +53,7 @@ class Word2Vec(object):
         # 下采样率
         self.sample = 1e-4
         # 训练使用的线程数量
-        self.num_thread = 10
+        self.num_thread = 8
         # 训练的迭代次数
         self.iter_size = 15
         # 是否打印输出信息，大于0就打印
@@ -496,39 +496,23 @@ def TrainModelThread(num_thread, word_count_actual, index,
                     c = sentence_position - window + i
                     if c < 0 or c >= sentence_length:
                         continue
-                    # if c >= sentence_length:
-                    #     continue
                     last_word = sentence[c]
                     if last_word == -1:
                         continue
-                    # 投影层,将多个单词投影到neul中
-                    move_position = last_word * layer1_size
-                    neu1 += syn0[move_position: layer1_size + move_position]
-                    cw += 1
-
-            if cw > 0:
-                neu1 /= cw
-                for i in range(vocab_code_len[word_index]):
-                    f = 0
-                    l2 = vocab_point[word_index][i] * layer1_size
-                    f += np.sum(neu1 * syn1[l2:l2 + layer1_size])
-                    if f <= -max_exp or f >= max_exp:
-                        continue
-                    else:
-                        f = expTable[int((f + max_exp) * (exp_table_size / max_exp / 2))]
-                    g = (1 - vocab_code[word_index][i] - f) * alpha.value
-                    neu1e += g * syn1[l2:l2 + layer1_size]
-                    syn1[l2:l2 + layer1_size] += g * neu1
-                for i in range(b, window * 2 + 1 - b):
-                    if i != window:
-                        c = sentence_position - window + i
-                        if c < 0 or c >= sentence_length:
+                    l1 = last_word * layer1_size
+                    neu1e = np.expand_dims(np.array(np.zeros(layer1_size), dtype=np.float), axis=1)
+                    for j in range(vocab_code_len[word_index]):
+                        f = 0
+                        l2 = vocab_point[word_index][j] * layer1_size
+                        f += np.sum(syn0[l1: l1 + layer1_size] * syn1[l2: l2 + layer1_size])
+                        if f <= -max_exp or f >= max_exp:
                             continue
-                        last_word = sentence[c]
-                        if last_word == -1:
-                            continue
-                        move_position = last_word * layer1_size
-                        syn0[move_position:move_position + layer1_size] += neu1e
+                        else:
+                            f = expTable[int((f + max_exp) * (exp_table_size / max_exp / 2))]
+                        g = (1 - vocab_code[word_index][j] - f) * alpha.value
+                        neu1e += g * syn1[l2: l2 + layer1_size]
+                        syn1[l2: l2 + layer1_size] += g * syn0[l1: l1 + layer1_size]
+                    syn0[l1: l1 + layer1_size] += neu1e
 
             sentence_position += 1
             if sentence_position >= sentence_length:
