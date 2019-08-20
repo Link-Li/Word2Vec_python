@@ -79,6 +79,12 @@ Here, I have to make complaints about the python's multiprocessing data sharing 
 
 You can find the vocab which is processed in <a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>, The password is: fs5t. Where `text8` is the dataset, and the `text8_vocab_test_1000_5.txt` is the word I have processed and it can be read directly.
 
+### skip-hs
+You can run the code `Word2Vec_skip_hs_1_multiprocessing.py`, but it takes me about 8 hours. I train it on the i7-9700k and use 8 processing. However, the speed of every process is about `0.8k/s`. 
+
+### cbow-ns
+You can run the code `Word2Vec_cbow_ns_1_multiprocessing.py`. This is the negative sampling implementation of cbow. It takes me about 80 minutes on i7-9700k
+
 ### distance
 You can use the `Vector_Distance.py` code to calculate the distance of words, you need to set the parameter `input_vector_file_name`, which can tell the code where can find the word vector which is trained
 
