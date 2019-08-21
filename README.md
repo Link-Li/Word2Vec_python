@@ -1,4 +1,11 @@
-# Word2Vec_python
+* [Word2Vec_python](#1)
+  * [cbow-hs](#1.1)
+  * [skip-hs](#1.2)
+  * [cbow-ns](#1.3)
+  * [skip-ns](#1.4)
+  * [distance](#1.5)
+
+# <span id="1">Word2Vec_python</span>
 
 **中文版的README请参考<a href="https://github.com/Link-Li/Word2Vec_python/blob/master/README-chinese.md" target="_blank">README-chinese</a>**
 
@@ -12,7 +19,7 @@ After a period of study, I started to write these python code, I am still updati
 
 At the same time, I am especially grateful to the peghoty@163.com who wrtie the **the math in word2vec**, I also put this pdf into the `/pdf` folder. You can learn from it.
 
-### cbow
+## <span id="1.1">cbow-hs</span>
 At present, I finish the cbow's single-thread code. If you need to train it, you can run the code of `Word2Vec_cbow_hs_1_one_thread.py`. You can change the parameter from the code
 ```
         # 用于训练的数据集
@@ -79,16 +86,19 @@ Here, I have to make complaints about the python's multiprocessing data sharing 
 
 You can find the vocab which is processed in <a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>, The password is: fs5t. Where `text8` is the dataset, and the `text8_vocab_test_1000_5.txt` is the word I have processed and it can be read directly.
 
-### skip-hs
+## <span id="1.2">skip-hs</span>
 You can run the code `Word2Vec_skip_hs_1_multiprocessing.py`, but it takes me about 8 hours. I train it on the i7-9700k and use 8 processing. However, the speed of every process is about `0.8k/s`. 
 
-### cbow-ns
+## <span id="1.3">cbow-ns</span>
 You can run the code `Word2Vec_cbow_ns_1_multiprocessing.py`. This is the negative sampling implementation of cbow. It takes me about 80 minutes on i7-9700k
 
-### distance
+## <spam id="1.4">skip-ns<span>
+You can run the code `Word2Vec_skip_ns_1_multiprocessing.py`. It takes me about 5 hours on i7-9700k
+
+## <span id=1.5>distance</span>
 You can use the `Vector_Distance.py` code to calculate the distance of words, you need to set the parameter `input_vector_file_name`, which can tell the code where can find the word vector which is trained
 
-You can find the vocab vector which is I trained in <a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>, the password is: fs5t. Where the vocab vector is stored in `text8_vector_cbow_1.npz`.
+You can find the vocab vector which is I trained in <a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>, the password is: fs5t. You will see 4 files.
 
 
 

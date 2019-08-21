@@ -1,9 +1,8 @@
 """
-Name: Word2Vec_cbow_ns_1_multiprocessing.py
-Date: 19-8-17 下午10:03
-TODO: negative sampling 的 CBOW 版本,多进程版本
+Name: Word2Vec_skip_ns_1_multiprocessing.py
+Date: 19-8-20 下午12:35
+TODO:skip的负采样的多线程实现版本
 """
-
 
 import numpy as np
 import multiprocessing as mp
@@ -21,8 +20,8 @@ class Word2Vec(object):
         # self.train_file_name = 'data/text8_mini_2'
         # self.train_file_name = 'data/test.txt'
         # 训练好的词向量
-        # self.output_file_name = 'data/text8_vector_test_1.npz'
-        self.output_file_name = 'data/text8_mini_vector_cbow_ns_multi.npz'
+        # self.output_file_name = 'data/text8_vector_skip_ns_multi.npz'
+        self.output_file_name = 'data/text8_mini_vector_skip_ns_multi.npz'
         # self.output_file_name = 'data/text8_mini_2_vector_test.npz'
         # self.output_file_name = 'data/text_vector_test.npz'
         # 将处理好的单词直接读取，省去了进行数据集预处理的步骤
@@ -523,52 +522,36 @@ def TrainModelThread(num_thread, word_count_actual, index,
                     c = sentence_position - window + i
                     if c < 0 or c >= sentence_length:
                         continue
-                    # if c >= sentence_length:
-                    #     continue
                     last_word = sentence[c]
                     if last_word == -1:
                         continue
-                    # 投影层,将多个单词投影到neul中
-                    move_position = last_word * layer1_size
-                    neu1 += syn0[move_position: layer1_size + move_position]
-                    cw += 1
+                    l1 = last_word * layer1_size
+                    neu1e = np.expand_dims(np.array(np.zeros(layer1_size), dtype=np.float), axis=1)
 
-            neu1 /=cw
-            for d in range(negative + 1):
-                if d == 0:
-                    target = word_index
-                    label = 1
-                else:
-                    target = table[np.random.randint(0, table_size)]
-                    if target == 0:
-                        target = np.random.randint(1, vocab_size)
-                    if target == word_index:
-                        continue
-                    label = 0
-
-                l2 = target * layer1_size
-                f = 0
-                f += np.sum(neu1 * syn1[l2: l2 + layer1_size])
-                g = 0
-                if f > max_exp:
-                    g = (label - 1) * alpha.value
-                elif f < -max_exp:
-                    g = (label - 0) * alpha.value
-                else:
-                    g = (label - expTable[int((f + max_exp) * (exp_table_size / max_exp / 2))]) * alpha.value
-                neu1e += g * syn1[l2: l2 + layer1_size]
-                syn1[l2: l2 + layer1_size] += g * neu1
-
-            for i in range(b, window * 2 + 1 - b):
-                if i != window:
-                    c = sentence_position - window + i
-                    if c < 0 or c >= sentence_length:
-                        continue
-                    last_word = sentence[c]
-                    if last_word == -1:
-                        continue
-                    move_position = last_word * layer1_size
-                    syn0[move_position:move_position + layer1_size] += neu1e
+                    for d in range(negative + 1):
+                        if d == 0:
+                            target = word_index
+                            label = 1
+                        else:
+                            target = table[np.random.randint(0, table_size)]
+                            if target == 0:
+                                target = np.random.randint(1, vocab_size)
+                            if target == word_index:
+                                continue
+                            label = 0
+                        l2 = target * layer1_size
+                        f = 0
+                        f += np.sum(syn0[l1: l1 + layer1_size] * syn1[l2: l2 + layer1_size])
+                        g = 0
+                        if f > max_exp:
+                            g = (label - 1) * alpha.value
+                        elif f < -max_exp:
+                            g = (label - 0) * alpha.value
+                        else:
+                            g = (label - expTable[int((f + max_exp) * (exp_table_size / max_exp / 2))]) * alpha.value
+                        neu1e += g * syn1[l2: l2 + layer1_size]
+                        syn1[l2: l2 + layer1_size] += g * syn0[l1: l1 + layer1_size]
+                    syn0[l1: l1 + layer1_size] += neu1e
 
             sentence_position += 1
             if sentence_position >= sentence_length:

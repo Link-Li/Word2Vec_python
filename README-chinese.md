@@ -1,4 +1,11 @@
-# Word2Vec_python
+* [Word2Vec_python](#1)
+     * [cbow-hs](#1.1)
+     * [skip-hs](#1.2)
+     * [cbow-ns](#1.3)
+     * [skip-ns](#1.4)
+     * [distance](#1.5)
+
+# <span id="1">Word2Vec_python</span>
 
 **The Englist please refer to <a href="https://github.com/Link-Li/Word2Vec_python" target="_blank">README</a>**
 
@@ -12,7 +19,7 @@
 
 同时特别感谢写了**word2vec中的数学**的这位大佬peghoty@163.com，我也将这份pdf放到了项目里，大家可以进行学习参考
 
-### cbow-hs
+## <span id="1.1">cbow-hs</span>
 目前已经完成了cbow的单线程代码,如果需要进行训练,则需要运行`Word2Vec_cbow_hs_1_one_thread.py`,参数设定都在代码中进行修改
 
 我的cpu是i7-6700HQ,如果你是第一次运行代码,那么需要先设定save_vocab_file_name参数,这个参数是告诉代码将处理好的单词存储在哪.如果使用数据集`text8`,大概需要40分钟左右来查找需要训练的单词,然后存储到文件中.如果再次进行训练,直接读取提取好的单词的文件,那么速度就会很快.之后大概需要24个小时以上的训练,我测试了4次,训练时间从24小时到48小时不等.
@@ -21,15 +28,18 @@
 
 你可以在这里下载到我处理好的词<a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>,提取码是:fs5t.其中`text8`是数据集,`text8_vocab_test_1000_5.txt`是我处理好的词,可以直接读取.
 
-### skip-hs
+## <span id="1.2">skip-hs</span>
 运行代码`Word2Vec_skip_hs_1_multiprocessing.py`,这个是skip的层次softmax实现.但是这个训练时间比较长,使用8个进程,在i7-9700k上训练,速度大概只在`0.8k/thread/s`.
 
-### cbow-ns
+## <span id="1.3">cbow-ns</span>
 运行代码`Word2Vec_cbow_ns_1_multiprocessing.py`,这个是cbow的负采样实现,在i7-9700k上需要80分钟左右
 
-### distance
+## <span id="1.4">skip-ns</span>
+运行代码`Word2Vec_skip_ns_1_multiprocessing.py`,在i7-9700k上运行需要5个小时左右
+
+## <span id="1.5">distance</span>
 使用`Vector_Distance.py`代码进行距离的计算,其中需要在代码中指定训练好的词向量的文件位置
 
-你可以在这里下载到我使用cbow训练好的词向量的模型<a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>,提取码是:fs5t.文件是`text8_vector_cbow_1.npz`.
+你可以在这里下载到我使用cbow训练好的词向量的模型<a href="https://pan.baidu.com/s/1ruOs7RFy140L8L9UHvBKIw" traget="_blank">百度网盘</a>,提取码是:fs5t.一共是4个文件.
 
 
